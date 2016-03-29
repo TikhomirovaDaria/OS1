@@ -1,24 +1,43 @@
-#include <unistd.h>
-#include <stdio.h>
+#include <sys/wait.h>
+#include <sys/stat.h>
+#include <dirent.h>
+#include <fcntl.h>
+#include <string.h>
 
-pid_t CreateProcess(int n);
+pid_t CreateProsess(int n);
 int CopyFile (char* source, char* dest);
-
-int main () {
-	char* source = (char*)malloc(1024);
-	char* dest = (char*)malloc(1024);
-
-	printf("Enter source: ");
-    scanf ("%s", source);
-    printf("Enter dest: ");
-    scanf ("%s", dest);
+void MakePath(char* currentDir, char* nextDir, char* result);
+int CopyDirectory (char* source, char* dest);
+int count = 0;
 
 
-	free(sourse);
-	free(dest);
-	return 0;
+int main(int argc, char* argv[])
+{
+	if (argc != 4) {
+		printf ("Wrong input\n");
+		return 0;
+	}
+	int proc = atoi(argv[1]);
+
+    signal (SIGUSR1, SignalHandler);
+
+    char* source = (char*)malloc(1024);
+    char* dest = (char*)malloc(1024);
+    int status;
+	
+    pid_t pid = CreateProsess(proc);
+
+    if (!pid) {
+		CopyDirectory(argv[2], argv[3]);		
+		exit(0);
+    }
+	
+	for (int i = 0; i < proc; i++)
+    	wait(&status);
+    free (source);
+    free (dest);
+    return 0;
 }
-
 // Initial process creates exactly n child-processes
 pid_t CreateProcess(int n) {
 	pid_t pid = fork();
