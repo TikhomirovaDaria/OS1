@@ -1,13 +1,20 @@
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <malloc.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
 #include <dirent.h>
 #include <fcntl.h>
 #include <string.h>
+#include <signal.h>
+#include <errno.h>
 
 pid_t CreateProsess(int n);
 int CopyFile (char* source, char* dest);
 void MakePath(char* currentDir, char* nextDir, char* result);
 int CopyDirectory (char* source, char* dest);
+void SignalHandler(int sig);
 int count = 0;
 
 
@@ -20,6 +27,7 @@ int main(int argc, char* argv[])
 	int proc = atoi(argv[1]);
 
     signal (SIGUSR1, SignalHandler);
+	printf("MAIN PROCCESS PID: %d\n\n", getpid());
 
     char* source = (char*)malloc(1024);
     char* dest = (char*)malloc(1024);
@@ -28,12 +36,16 @@ int main(int argc, char* argv[])
     pid_t pid = CreateProsess(proc);
 
     if (!pid) {
-		CopyDirectory(argv[2], argv[3]);		
+		if(CopyDirectory(argv[2], argv[3])){
+			printf("Error! PID process: %d\n", getpid());
+			exit(-1);
+		}
+ 		kill(getpid(), SIGUSR1);		
 		exit(0);
     }
-	
-	for (int i = 0; i < proc; i++)
-    	wait(&status);
+
+	for(int i=0; i<proc; i++)
+		wait(NULL);
     free (source);
     free (dest);
     return 0;
@@ -78,7 +90,9 @@ int CopyDirectory (char* source, char* dest) {
     DIR* dirSource = opendir(source);
     if (!dirSource)
         return -1;
-    mkdir(dest, S_IRWXU|S_IRWXO);
+	if(mkdir(dest, S_IRWXU|S_IRWXO) == -1
+		&& errno == ENOENT)
+		return -1;
 
     char* fSource = (char*)malloc(1024);
     char* fDest = (char*)malloc(1024);
@@ -103,4 +117,10 @@ int CopyDirectory (char* source, char* dest) {
     free(fSource);
     free(fDest);
     return 0;
+}
+
+// Handler
+void SignalHandler(int sig){
+	if(getpid() != getpgrp())
+		printf ("PROCESS[%d]: %d files copied\n", getpid(), count);
 }
