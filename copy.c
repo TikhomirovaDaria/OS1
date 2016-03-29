@@ -10,7 +10,7 @@
 #include <signal.h>
 #include <errno.h>
 
-pid_t CreateProsess(int n);
+pid_t CreateProcess(int n);
 int CopyFile (char* source, char* dest);
 void MakePath(char* currentDir, char* nextDir, char* result);
 int CopyDirectory (char* source, char* dest);
@@ -33,7 +33,7 @@ int main(int argc, char* argv[])
     char* dest = (char*)malloc(1024);
     int status;
 	
-    pid_t pid = CreateProsess(proc);
+    pid_t pid = CreateProcess(proc);
 
     if (!pid) {
 		if(CopyDirectory(argv[2], argv[3])){
@@ -68,8 +68,8 @@ int CopyFile (char* source, char* dest) {
     out = open (dest, O_WRONLY|O_CREAT, S_IRWXU|S_IRWXO);
     if (!in || !out)
     	return -1;
-   	 while ((nread = read(in, buff, sizeof(block))) > 0)
-     	write(out,block,nread);
+   	 while ((nread = read(in, buff, sizeof(buff))) > 0)
+     	write(out,buff,nread);
 
    	close(out);
     close(in);
