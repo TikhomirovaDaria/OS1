@@ -38,12 +38,24 @@ int main(int argc, char* argv[])
     pid_t pid = CreateProcess(proc);
 
     if (!pid) {
-		if(CopyDirectory(argv[2], argv[3])){
-			printf("Error! PID process: %d\n", getpid());
-			exit(-1);
+		switch(CopyDirectory(argv[2], argv[3])){
+			case 0 : {
+				kill(getpid(), SIGUSR1);		
+				exit(0);
+			}
+			case -1: {
+				printf("Cannot make directory. PID process: %d\n", getpid());
+				exit(-1);
+			}
+			case -2: {
+				printf("Cannot open directory. PID process: %d\n", getpid());
+				exit(-2);
+			}
+			default : {
+				printf("FATAL ERROR. PID process: %d\n", getpid());		
+				exit(-3);
+			}
 		}
- 		kill(getpid(), SIGUSR1);		
-		exit(0);
     }
 
 	for(int i=0; i<proc; i++)
@@ -91,7 +103,7 @@ void MakePath(char* currentDir, char* nextDir, char* result){
 int CopyDirectory (char* source, char* dest) {
     DIR* dirSource = opendir(source);
     if (!dirSource)
-        return -1;
+        return -2;
 	if(_mkdir(dest) == -1
 		&& errno == ENOENT)
 		return -1;
