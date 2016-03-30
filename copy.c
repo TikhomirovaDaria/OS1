@@ -9,12 +9,14 @@
 #include <string.h>
 #include <signal.h>
 #include <errno.h>
+#include <limits.h>
 
 pid_t CreateProcess(int n);
 int CopyFile (char* source, char* dest);
 void MakePath(char* currentDir, char* nextDir, char* result);
 int CopyDirectory (char* source, char* dest);
 void SignalHandler(int sig);
+int _mkdir (char* dir);
 int count = 0;
 
 
@@ -29,8 +31,8 @@ int main(int argc, char* argv[])
     signal (SIGUSR1, SignalHandler);
 	printf("MAIN PROCCESS PID: %d\n\n", getpid());
 
-    char* source = (char*)malloc(1024);
-    char* dest = (char*)malloc(1024);
+    char* source = (char*)malloc(512);
+    char* dest = (char*)malloc(512);
     int status;
 	
     pid_t pid = CreateProcess(proc);
@@ -77,7 +79,7 @@ int CopyFile (char* source, char* dest) {
     return 0;
 }
 
-// Make path to inside directory
+// Make string-path to inside directory
 void MakePath(char* currentDir, char* nextDir, char* result){
     strcpy(result, currentDir);
     if (currentDir[strlen(currentDir) - 1] != '/')
@@ -90,12 +92,12 @@ int CopyDirectory (char* source, char* dest) {
     DIR* dirSource = opendir(source);
     if (!dirSource)
         return -1;
-	if(mkdir(dest, S_IRWXU|S_IRWXO) == -1
+	if(_mkdir(dest) == -1
 		&& errno == ENOENT)
 		return -1;
 
-    char* fSource = (char*)malloc(1024);
-    char* fDest = (char*)malloc(1024);
+    char* fSource = (char*)malloc(512);
+    char* fDest = (char*)malloc(512);
 
     struct dirent* catalog;
     while((catalog = readdir(dirSource))!=NULL) {
@@ -109,14 +111,40 @@ int CopyDirectory (char* source, char* dest) {
             CopyDirectory(fSource, fDest);
 
 		if (access(fDest,0)==-1){
-        	CopyFile(fSource, fDest);
-        	count++;
+        	if(!CopyFile(fSource, fDest));
+        		count++;
 		}
     }
 
     free(fSource);
     free(fDest);
     return 0;
+}
+//Create path to inside directories
+int _mkdir(char *dir) {
+	int result = mkdir(dir, S_IRWXU|S_IRWXO);
+	if (result == -1) {
+		if (errno == EEXIST)
+			return 0;
+		 
+    	char* tmp = (char*)malloc(512);
+    	char *p = NULL;
+    	size_t len;
+
+    	strcpy(tmp, dir);
+    	len = strlen(tmp);
+    	if(tmp[len - 1] == '/')
+        	tmp[len - 1] = 0;
+        	for(p = tmp + 1; *p; p++)
+            	if(*p == '/') {
+                	*p = 0;
+                	mkdir(tmp, S_IRWXU|S_IRWXO);
+                	*p = '/';
+             	}
+    	result = mkdir(tmp, S_IRWXU|S_IRWXO);
+    	free(tmp);
+    	return result;
+	}
 }
 
 // Handler
